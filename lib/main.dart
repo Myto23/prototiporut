@@ -30,11 +30,30 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
+    });
+
     _focusNode.addListener(() {
       if (!_focusNode.hasFocus) {
         _focusNode.requestFocus();
       }
     });
+
+    _inputController.addListener(() {
+      final input = _inputController.text.trim();
+      if (input.isNotEmpty && _isValidRut(input)) {
+        _processInput(input);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _inputController.dispose();
+    _focusNode.dispose();
+    super.dispose();
   }
 
   String _calculateDV(String rutBody) {
@@ -98,43 +117,47 @@ class _MainScreenState extends State<MainScreen> {
       return;
     }
 
-    if (_focusNode.hasFocus) {
-      if (rut == '22222222-2') {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DetailScreen(
-              nombreCliente: 'Carlos Tevez',
-              estado: 'Inactivo',
-            ),
-          ),
-        );
-        return;
-      }
+    _clearInput();
 
-      if (rut == '33333333-3') {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DetailScreen(
-              nombreCliente: 'Titular Inactivo',
-              estado: 'Inactivo',
-            ),
-          ),
-        );
-        return;
-      }
-
+    if (rut == '22222222-2') {
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => DetailScreen(
-            nombreCliente: 'Cliente válido',
-            estado: 'Activo',
+            nombreCliente: 'Cliente Inactivo',
+            estado: 'Inactivo',
           ),
         ),
       );
+      return;
     }
+
+    if (rut == '33333333-3') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DetailScreen(
+            nombreCliente: 'Titular Inactivo',
+            estado: 'Inactivo',
+          ),
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DetailScreen(
+          nombreCliente: 'Cliente válido',
+          estado: 'Activo',
+        ),
+      ),
+    );
+  }
+
+  void _clearInput() {
+    _inputController.clear();
   }
 
   void _mostrarDialogo(String titulo, String mensaje) {
@@ -200,51 +223,57 @@ class _MainScreenState extends State<MainScreen> {
         centerTitle: true,
         backgroundColor: Colors.blue,
       ),
-      body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.1),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            GestureDetector(
-              onTap: () => _openCamera(context),
-              child: TextField(
-                controller: _inputController,
-                focusNode: _focusNode,
-                decoration: InputDecoration(
-                  labelText: 'RUT escaneado',
-                  border: OutlineInputBorder(),
-                  enabled: false,
-                ),
-                onSubmitted: _processInput,
-              ),
-            ),
-            SizedBox(height: screenHeight * 0.03),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ManualRutInputScreen(),
+      body: RawKeyboardListener(
+        focusNode: FocusNode(),
+        onKey: (event) {
+          if (event.character != null) {
+            _inputController.text += event.character!;
+          }
+        },
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.1),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Opacity(
+                opacity: 0.0,
+                child: TextField(
+                  controller: _inputController,
+                  focusNode: _focusNode,
+                  decoration: InputDecoration(
+                    labelText: 'RUT escaneado',
+                    border: OutlineInputBorder(),
+                    enabled: true,
                   ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[700],
-                minimumSize: Size(double.infinity, buttonHeight),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
                 ),
               ),
-              child: Text(
-                'Ingresar RUT manualmente',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: screenHeight * 0.02,
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ManualRutInputScreen(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[700],
+                  minimumSize: Size(double.infinity, buttonHeight),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                ),
+                child: Text(
+                  'Ingresar RUT manualmente',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: screenHeight * 0.02,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
